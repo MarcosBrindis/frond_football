@@ -12,7 +12,7 @@ const CreateMatchButton = () => {
       date_time: new Date(match.date_time).toISOString()  // Convertir a formato ISO 8601 con zona horaria
     };
     console.log('Sending match data:', matchData);
-    axios.post('http://localhost:8080/Game/', matchData)
+    axios.post('http://54.174.200.174:8080/Game/', matchData)
       .then(response => {
         console.log('Match created:', response.data);
         window.location.reload(); // Recargar la página para ver los cambios

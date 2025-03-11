@@ -11,15 +11,57 @@ const CreateNotificationButton = () => {
   const [description, setDescription] = useState('');
   const [scoreboard, setScoreboard] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [matchTitle, setMatchTitle] = useState('');
+
+  const eventTypes = [
+    'Gol',
+    'Tarjeta Amarilla',
+    'Tarjeta Roja',
+    'Penal',
+    'Falta',
+    'Cambio',
+    'Inicio del Partido',
+    'Fin del Partido',
+    'Tiempo Extra',
+    'Lesión',
+    'Fuera de Lugar'
+  ];
 
   useEffect(() => {
-    axios.get('http://localhost:8080/Game/')
+    axios.get('http://54.174.200.174:8080/Game/')
       .then(response => {
         const live = response.data.filter(match => match.status === 'live');
         setLiveMatches(live);
       })
       .catch(error => console.error('Error fetching live matches:', error));
   }, []);
+
+  useEffect(() => {
+    const pollNotifications = () => {
+      axios.get('http://54.166.101.0:8001/consumer/message')
+        .then(response => {
+          const newNotification = response.data;
+          if (newNotification && newNotification.message) {
+            try {
+              const parsedMessage = JSON.parse(newNotification.message);
+              const match = liveMatches.find(m => m.id === parsedMessage.match_id);
+              if (match) {
+                parsedMessage.matchTitle = `${match.home_team} vs ${match.away_team}`;
+              }
+              setNotifications(prevNotifications => [...prevNotifications, parsedMessage]);
+            } catch (error) {
+              console.error('Error parsing notification message:', error);
+            }
+          }
+        })
+        .catch(error => console.error('Error fetching notifications:', error));
+    };
+
+    const intervalId = setInterval(pollNotifications, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [liveMatches]);
 
   const handleSubmit = () => {
     if (!selectedMatchId || !eventType || !description || !scoreboard) {
@@ -37,9 +79,7 @@ const CreateNotificationButton = () => {
       scoreboard: scoreboard,
     };
 
-    console.log("Datos enviados:", notification); // 👈 Agregar este console.log
-
-    axios.post('http://localhost:8080/sportEvent/', notification, {
+    axios.post('http://54.174.200.174:8080/sportEvent/', notification, {
       headers: {
         'Content-Type': 'application/json'
       }
@@ -59,19 +99,23 @@ const CreateNotificationButton = () => {
     });
   };
 
-  const eventTypes = [
-    'Gol',
-    'Tarjeta Amarilla',
-    'Tarjeta Roja',
-    'Penal',
-    'Falta',
-    'Cambio',
-    'Inicio del Partido',
-    'Fin del Partido',
-    'Tiempo Extra',
-    'Lesión',
-    'Fuera de Lugar'
-  ];
+  // Display notifications in a floating window
+  const renderNotifications = () => {
+    return notifications.map((notification, index) => (
+      <div key={index} className="notification">
+        <div className="notification-header">
+          <p><strong>Partido:</strong> {notification.matchTitle || 'N/A'}</p>
+        </div>
+        <div className="notification-body">
+          <p><strong>Evento:</strong> {notification.event_type || 'N/A'}</p>
+          <p><strong>Descripción:</strong> {notification.description || 'N/A'}</p>
+          <p><strong>Hora:</strong> {moment(notification.timestamp).format('HH:mm') || 'N/A'}</p>
+          <p><strong>Marcador:</strong> <span className="scoreboard">{notification.scoreboard || 'N/A'}</span></p>
+          <p>---------------------------------------------------</p>
+        </div>
+      </div>
+    ));
+  };
 
   return (
     <div className="container">
@@ -83,7 +127,11 @@ const CreateNotificationButton = () => {
           <h2>Crear Notificación</h2>
           <select
             value={selectedMatchId}
-            onChange={(e) => setSelectedMatchId(e.target.value)}
+            onChange={(e) => {
+              setSelectedMatchId(e.target.value);
+              const match = liveMatches.find(m => m.id === Number(e.target.value));
+              setMatchTitle(match ? `${match.home_team} vs ${match.away_team}` : '');
+            }}
           >
             <option value="">Seleccionar Partido en Vivo</option>
             {liveMatches.map(match => (
@@ -120,6 +168,10 @@ const CreateNotificationButton = () => {
           </button>
         </div>
       )}
+      {/* Render floating notifications */}
+      <div className="floating-notifications">
+        {renderNotifications()}
+      </div>
     </div>
   );
 };

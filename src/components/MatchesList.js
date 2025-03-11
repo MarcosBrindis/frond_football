@@ -8,7 +8,7 @@ const MatchesList = ({ onSelectMatch }) => {
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:8080/Game/')
+    axios.get('http://54.174.200.174:8080/Game/')
       .then(response => {
         const matches = response.data;
         const live = matches.filter(match => match.status === 'live');

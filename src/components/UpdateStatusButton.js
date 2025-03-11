@@ -6,7 +6,7 @@ const UpdateStatusButton = ({ match, onUpdate }) => {
   const nextStatus = match.status === 'live' ? 'Finalized' : 'live';
 
   const handleUpdate = () => {
-    axios.put(`http://localhost:8080/Game/${match.id}`, { status: nextStatus })
+    axios.put(`http://54.174.200.174:8080/Game/${match.id}`, { status: nextStatus })
       .then(response => {
         console.log('Status updated:', response.data);
         onUpdate(response.data);
